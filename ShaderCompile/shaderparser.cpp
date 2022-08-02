@@ -296,7 +296,7 @@ void Parser::WriteInclude( const std::string& fileName, const std::string& name,
 
 		writeVars( "Dynamic"sv, dynamic_c, 1U );
 
-		file << "\n#endif\t// "sv << nameUpper << "_H"sv;
+		//file << "\n#endif\t// "sv << nameUpper << "_H"sv;
 	}
 
 	fs::permissions( fileName, fs::perms::owner_read );
