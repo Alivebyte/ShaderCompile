@@ -11,6 +11,7 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
+#include <cctype>
 
 #include "shaderparser.h"
 #include "termcolor/style.hpp"
@@ -27,7 +28,7 @@ namespace fs = std::filesystem;
 namespace r
 {
 	using namespace re2;
-	static const RE2 inc( R"reg(#\s*include\s*"(.*)")reg" );
+	static const RE2 inc( R"reg(#\s*fxctmp9\s*"(.*)")reg" );
 	static const RE2 xbox_reg( R"reg(\[XBOX\])reg" );
 	static const RE2 pc_reg( R"reg(\[PC\])reg" );
 	static const RE2 start( R"reg(^\s*//\s*(STATIC|DYNAMIC|SKIP|CENTROID)\s*:\s*(.*)$)reg" );
@@ -213,9 +214,17 @@ void Parser::WriteInclude( const std::string& fileName, const std::string& name,
 	{
 		fs::create_directories( fs::path( fileName ).parent_path() );
 		std::ofstream file( fileName, std::ios::trunc );
+
+		const auto& str_tolower = [&](std::string s)
+		{
+			std::transform(s.begin(), s.end(), s.begin(),
+				[](unsigned char c) {return std::tolower(c);});
+			return s;
+		};
+
 		const auto& writeVars = [&]( const std::string_view& suffix, const std::vector<Combo>& vars, uint32_t scale )
 		{
-			file << "class "sv << name << "_"sv << suffix << "_Index\n{\n";
+			file << "class "sv << str_tolower(name) << "_"sv << suffix << "_Index\n{\n";
 			const bool hasIfdef = std::find_if( vars.begin(), vars.end(), []( const Combo& c ) { return c.initVal.empty(); } ) != vars.end();
 			for ( const Combo& c : vars )
 				file << "\tunsigned int m_n"sv << c.name << " : "sv << ( 32 - lzcnt( c.maxVal - c.minVal + 1 ) ) << ";\n"sv;
@@ -239,7 +248,7 @@ void Parser::WriteInclude( const std::string& fileName, const std::string& name,
 					file << "#ifdef _DEBUG\n\t\tm_b"sv << c.name << " = true;\n#endif\t// _DEBUG\n"sv;
 				file << "\t}\n\n"sv;
 			}
-			file << "\t"sv << name << "_"sv << suffix << "_Index( "sv <<  " )\n\t{\n"sv;
+			file << "\t"sv << str_tolower(name) << "_"sv << suffix << "_Index( "sv <<  " )\n\t{\n"sv;
 			for ( const Combo& c : vars )
 				file << "\t\tm_n"sv << c.name << " = "sv << ( c.initVal.empty() ? "0"sv : c.initVal ) << ";\n"sv;
 			if ( hasIfdef )
@@ -269,7 +278,7 @@ void Parser::WriteInclude( const std::string& fileName, const std::string& name,
 			std::string suffixLower( suffix.length(), ' ' );
 			std::transform( suffix.begin(), suffix.end(), suffixLower.begin(), []( const char& c ) { return (char)std::tolower( c ); } );
 			const std::string& pref = ( isVs ? "vsh_"s : "psh_"s ) + "forgot_to_set_"s + suffixLower + "_"s;
-			file << "#define shader"sv << suffix << "Test_"sv << name << " "sv;
+			file << "#define shader"sv << suffix << "Test_"sv << str_tolower(name) << " "sv;
 			if ( hasIfdef )
 				file << std::accumulate( vars.begin(), vars.end(), ""s, [&pref]( const std::string& s, const Combo& c ) { return c.initVal.empty() ? ( s + " + " + pref + c.name ) : s; } ).substr( 3 );
 			else
@@ -286,8 +295,7 @@ void Parser::WriteInclude( const std::string& fileName, const std::string& name,
 				file << "// "sv << s << "\n"sv;
 			file << "\n"sv;
 		}
-		//file << "#ifndef "sv << nameUpper << "_H\n#define "sv << nameUpper
-		//<< "_H\n\n" R"(#include "shaderapi/ishaderapi.h")" "\n" R"(#include "shaderapi/ishadershadow.h")" "\n" R"(#include "materialsystem/imaterialvar.h")" "\n\n"sv;
+		file << R"(#include "shaderlib/cshader.h")" "\n"sv;
 
 		writeVars( "Static"sv, static_c,
 			std::accumulate( dynamic_c.begin(), dynamic_c.end(), 1U, []( uint32_t a, const Combo& b ) { return a * ( b.maxVal - b.minVal + 1 ); } ) );

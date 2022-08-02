@@ -1279,7 +1279,7 @@ static void Shared_ParseListOfCompileCommands()
 		std::cout << clr::red << "Failed to parse " << *cmdLine.lastArgs[0] << clr::reset << std::endl;
 		exit( -1 );
 	}
-	Parser::WriteInclude( ( fs::path( g_pShaderPath ) / "include"sv / ( name + ".inc" ) ).string(), name, static_c, dynamic_c, skip );
+	Parser::WriteInclude( ( fs::path( g_pShaderPath ) / "fxctmp9"sv / ( name + ".inc" ) ).string(), name, static_c, dynamic_c, skip );
 	ConfigurationProcessing::SetupConfigurationDirect( name, g_pShaderVersion, centroid_mask, static_c, dynamic_c, skip, includes );
 
 	CfgProcessor::DescribeConfiguration( g_arrCompileEntries );
@@ -1648,7 +1648,7 @@ int main( int argc, const char* argv[] )
 			return -1;
 		}
 		const std::string name = Parser::ConstructName( fs::path( *cmdLine.lastArgs[0] ).filename().string(), g_pShaderVersion );
-		Parser::WriteInclude( ( fs::path( g_pShaderPath ) / "include"sv / ( name + ".inc" ) ).string(), name, static_c, dynamic_c, skip );
+		Parser::WriteInclude( ( fs::path( g_pShaderPath ) / "fxctmp9"sv / ( name + ".inc" ) ).string(), name, static_c, dynamic_c, skip );
 		return 0;
 	}
 
