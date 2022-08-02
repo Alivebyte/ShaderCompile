@@ -1,6 +1,6 @@
 # ShaderCompile
 Standalone shadercompile, that doesn't depend on valve libraries and supports x64. Also removes dependencies
-on external tools (no perl or DxSdk)
+on external tools (no perl or DxSdk). This fork also makes use of old include file format with default constructor and lowercase indexes. No need to replace cshader.h
 ## Usage
 ```
 ShaderCompile.exe [OPTIONS] -ver n -shaderdir src_dir shader.fxc
@@ -39,11 +39,9 @@ Valid options for  `-ver`
 This assumes you have "clean" Source SDK2013 project.
 1. In `game_shader_dx9_base.vpc` replace `$AdditionalIncludeDirectories	"$BASE;fxctmp9;vshtmp9;"`
  with `$AdditionalIncludeDirectories	"$BASE;include"` , shader headers will be now located in more sensible place
-2. Replace `cshader.h` in public/shaderlib with one from this repo, if you are using VS2013 compiler use the one from
-VS2013 folder
-3. Place `ShaderCompile.exe` and `process_shaders.ps1` to devtools/bin folder where `vpc.exe` is located
-4. Replace `buildshaders.bat` with one from this repo
-5. In `buildsdkshaders.bat`, remove from all commands `-dx9_30` so
+2. Place `ShaderCompile.exe` and `process_shaders.ps1` to devtools/bin folder where `vpc.exe` is located
+3. Replace `buildshaders.bat` with one from this repo
+4. In `buildsdkshaders.bat`, remove from all commands `-dx9_30` so
     ```batch
     %BUILD_SHADER% stdshader_dx9_30 -game %GAMEDIR% -source %SOURCEDIR% -dx9_30 -force30 
     ```
@@ -51,7 +49,7 @@ VS2013 folder
     ```batch
     %BUILD_SHADER% stdshader_dx9_30 -game %GAMEDIR% -source %SOURCEDIR% -force30
     ```
-6. Optionally remove all perl scripts for compiling shaders from devtools/bin, as they will be never used again
+5. Optionally remove all perl scripts for compiling shaders from devtools/bin, as they will be never used again
     ```
     buildshaderlist.pl
     checkshaderchecksums.pl
