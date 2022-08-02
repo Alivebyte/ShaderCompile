@@ -213,7 +213,7 @@ void Parser::WriteInclude( const std::string& fileName, const std::string& name,
 	{
 		fs::create_directories( fs::path( fileName ).parent_path() );
 		std::ofstream file( fileName, std::ios::trunc );
-		const auto& writeVars = [&]( const std::string_view& suffix, const std::vector<Combo>& vars, const std::string_view& ctor, uint32_t scale )
+		const auto& writeVars = [&]( const std::string_view& suffix, const std::vector<Combo>& vars, uint32_t scale )
 		{
 			file << "class "sv << name << "_"sv << suffix << "_Index\n{\n";
 			const bool hasIfdef = std::find_if( vars.begin(), vars.end(), []( const Combo& c ) { return c.initVal.empty(); } ) != vars.end();
@@ -239,7 +239,7 @@ void Parser::WriteInclude( const std::string& fileName, const std::string& name,
 					file << "#ifdef _DEBUG\n\t\tm_b"sv << c.name << " = true;\n#endif\t// _DEBUG\n"sv;
 				file << "\t}\n\n"sv;
 			}
-			file << "\t"sv << name << "_"sv << suffix << "_Index( "sv << ctor << " )\n\t{\n"sv;
+			file << "\t"sv << name << "_"sv << suffix << "_Index( "sv <<  " )\n\t{\n"sv;
 			for ( const Combo& c : vars )
 				file << "\t\tm_n"sv << c.name << " = "sv << ( c.initVal.empty() ? "0"sv : c.initVal ) << ";\n"sv;
 			if ( hasIfdef )
@@ -286,15 +286,15 @@ void Parser::WriteInclude( const std::string& fileName, const std::string& name,
 				file << "// "sv << s << "\n"sv;
 			file << "\n"sv;
 		}
-		file << "#ifndef "sv << nameUpper << "_H\n#define "sv << nameUpper
-			<< "_H\n\n" R"(#include "shaderapi/ishaderapi.h")" "\n" R"(#include "shaderapi/ishadershadow.h")" "\n" R"(#include "materialsystem/imaterialvar.h")" "\n\n"sv;
+		//file << "#ifndef "sv << nameUpper << "_H\n#define "sv << nameUpper
+		//<< "_H\n\n" R"(#include "shaderapi/ishaderapi.h")" "\n" R"(#include "shaderapi/ishadershadow.h")" "\n" R"(#include "materialsystem/imaterialvar.h")" "\n\n"sv;
 
-		writeVars( "Static"sv, static_c, "IShaderShadow* pShaderShadow, IMaterialVar** params"sv,
+		writeVars( "Static"sv, static_c,
 			std::accumulate( dynamic_c.begin(), dynamic_c.end(), 1U, []( uint32_t a, const Combo& b ) { return a * ( b.maxVal - b.minVal + 1 ); } ) );
 
 		file << "\n"sv;
 
-		writeVars( "Dynamic"sv, dynamic_c, "IShaderDynamicAPI* pShaderAPI"sv, 1U );
+		writeVars( "Dynamic"sv, dynamic_c, 1U );
 
 		file << "\n#endif\t// "sv << nameUpper << "_H"sv;
 	}
