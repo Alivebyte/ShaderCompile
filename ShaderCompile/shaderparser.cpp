@@ -28,7 +28,7 @@ namespace fs = std::filesystem;
 namespace r
 {
 	using namespace re2;
-	static const RE2 inc( R"reg(#\s*fxctmp9\s*"(.*)")reg" );
+	static const RE2 inc( R"reg(#\s*include\s*"(.*)")reg" );
 	static const RE2 xbox_reg( R"reg(\[XBOX\])reg" );
 	static const RE2 pc_reg( R"reg(\[PC\])reg" );
 	static const RE2 start( R"reg(^\s*//\s*(STATIC|DYNAMIC|SKIP|CENTROID)\s*:\s*(.*)$)reg" );
