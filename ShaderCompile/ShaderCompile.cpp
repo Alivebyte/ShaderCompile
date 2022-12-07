@@ -722,6 +722,80 @@ static void WriteShaderFiles( const char* pShaderName )
 	lastTime = Clock::now();
 }
 
+static void PrintCompileErrors()
+{
+	// Write all the errors
+	//////////////////////////////////////////////////////////////////////////
+	//
+	// Now deliver all our accumulated spew to the output
+	//
+	//////////////////////////////////////////////////////////////////////////
+
+	if (!g_CompilerMsg.empty())
+	{
+		size_t totalWarnings = 0, totalErrors = 0;
+		for (const auto& msg : g_CompilerMsg)
+		{
+			totalWarnings += msg.second.warning.size();
+			totalErrors += msg.second.error.size();
+		}
+		std::cout << clr::yellow << "WARNINGS" << clr::reset << "/" << clr::red << "ERRORS " << clr::reset << totalWarnings << "/" << totalErrors << std::endl;
+
+		const auto& trim = [](std::string s) -> std::string
+		{
+			s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); }).base(), s.end());
+			return s;
+		};
+
+		const size_t cwdLen = fs::current_path().string().length() + 1;
+
+		for (const auto& sMsg : g_CompilerMsg)
+		{
+			const auto& msg = sMsg.second;
+			const auto& shaderName = sMsg.first;
+			const std::string searchPat = *cmdLine.lastArgs[0] + "("; // TODO: rework when readding support for multiple files
+
+			if (const size_t warnings = msg.warning.size())
+				std::cout << shaderName << " " << clr::yellow << warnings << " WARNING(S):                                                         " << clr::reset << std::endl;
+
+			for (const auto& warn : msg.warning)
+			{
+				const auto& szMsg = warn.first;
+				const CompilerMsgInfo& cmi = warn.second;
+				const uint64_t numReported = cmi.GetNumTimesReported();
+
+				std::string m = trim(szMsg);
+				if (size_t find = m.find(searchPat); find != std::string::npos)
+					m = m.replace(find - cwdLen, cwdLen, "");
+				std::cout << m << "\nReported " << clr::green << numReported << clr::reset << " time(s)" << std::endl;
+			}
+
+			if (const size_t errors = msg.error.size())
+				std::cout << shaderName << " " << clr::red << errors << " ERROR(S):                                                               " << clr::reset << std::endl;
+
+			// Compiler spew
+			for (const auto& err : msg.error)
+			{
+				const auto& szMsg = err.first;
+				const CompilerMsgInfo& cmi = err.second;
+				const std::string& cmd = cmi.GetFirstCommand();
+				const uint64_t numReported = cmi.GetNumTimesReported();
+
+				std::string m = trim(szMsg);
+				if (size_t find = m.find(searchPat); find != std::string::npos)
+					m = m.replace(find - cwdLen, cwdLen, "");
+				std::cout << m << "\nReported " << clr::green << numReported << clr::reset << " time(s), example command: " << std::endl;
+
+				std::cout << "    " << clr::green << cmd << clr::reset << std::endl;
+			}
+		}
+	}
+
+	// Failed shaders summary
+	for (const auto& failed : g_ShaderHadError)
+		std::cout << clr::pinkish << "FAILED: " << clr::red << failed << clr::reset << std::endl;
+}
+
 // Assemble a reply package to the master from the compiled bytecode
 // return the length of the package.
 static size_t AssembleWorkerReplyPackage( const CfgProcessor::CfgEntryInfo* pEntry, uint64_t nComboOfEntry, CUtlBuffer& pBuf )
@@ -778,6 +852,12 @@ static size_t AssembleWorkerReplyPackage( const CfgProcessor::CfgEntryInfo* pEnt
 				  << clr::green2 << s_averageProcess.GetAverage() << clr::reset << " c/m) ] " << FormatTimeShort( std::chrono::duration_cast<std::chrono::seconds>( fCurTime - g_flStartTime ).count() ) << " elapsed         \r";
 		s_fLastInfoTime = fCurTime;
 	}
+	if (g_ShaderHadError.contains(pEntry->m_szName))
+	{
+		PrintCompileErrors();
+		return 0;
+	}
+
 	GLOBAL_DATA_MTX_UNLOCK();
 
 	return nBytesWritten;
@@ -1396,79 +1476,6 @@ static LONG WINAPI ExceptionFilter( _EXCEPTION_POINTERS* pExceptionInfo )
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
-static void PrintCompileErrors()
-{
-	// Write all the errors
-	//////////////////////////////////////////////////////////////////////////
-	//
-	// Now deliver all our accumulated spew to the output
-	//
-	//////////////////////////////////////////////////////////////////////////
-
-	if ( !g_CompilerMsg.empty() )
-	{
-		size_t totalWarnings = 0, totalErrors = 0;
-		for ( const auto& msg : g_CompilerMsg )
-		{
-			totalWarnings += msg.second.warning.size();
-			totalErrors += msg.second.error.size();
-		}
-		std::cout << clr::yellow << "WARNINGS" << clr::reset << "/" << clr::red << "ERRORS " << clr::reset << totalWarnings << "/" << totalErrors << std::endl;
-
-		const auto& trim = []( std::string s ) -> std::string
-		{
-			s.erase( std::find_if( s.rbegin(), s.rend(), []( int ch ) { return !std::isspace( ch ); } ).base(), s.end() );
-			return s;
-		};
-
-		const size_t cwdLen = fs::current_path().string().length() + 1;
-
-		for ( const auto& sMsg : g_CompilerMsg )
-		{
-			const auto& msg             = sMsg.second;
-			const auto& shaderName      = sMsg.first;
-			const std::string searchPat = *cmdLine.lastArgs[0] + "("; // TODO: rework when readding support for multiple files
-
-			if ( const size_t warnings = msg.warning.size() )
-				std::cout << shaderName << " " << clr::yellow << warnings << " WARNING(S):                                                         " << clr::reset << std::endl;
-
-			for ( const auto& warn : msg.warning )
-			{
-				const auto& szMsg          = warn.first;
-				const CompilerMsgInfo& cmi = warn.second;
-				const uint64_t numReported = cmi.GetNumTimesReported();
-
-				std::string m = trim( szMsg );
-				if ( size_t find = m.find( searchPat ); find != std::string::npos )
-					m = m.replace( find - cwdLen, cwdLen, "" );
-				std::cout << m << "\nReported " << clr::green << numReported << clr::reset << " time(s)" << std::endl;
-			}
-
-			if ( const size_t errors = msg.error.size() )
-				std::cout << shaderName << " " << clr::red << errors << " ERROR(S):                                                               " << clr::reset << std::endl;
-
-			// Compiler spew
-			for ( const auto& err : msg.error )
-			{
-				const auto& szMsg          = err.first;
-				const CompilerMsgInfo& cmi = err.second;
-				const std::string& cmd     = cmi.GetFirstCommand();
-				const uint64_t numReported = cmi.GetNumTimesReported();
-
-				std::string m = trim( szMsg );
-				if ( size_t find = m.find( searchPat ); find != std::string::npos )
-					m = m.replace( find - cwdLen, cwdLen, "" );
-				std::cout << m << "\nReported " << clr::green << numReported << clr::reset << " time(s), example command: " << std::endl;
-
-				std::cout << "    " << clr::green << cmd << clr::reset << std::endl;
-			}
-		}
-	}
-
-	// Failed shaders summary
-	for ( const auto& failed : g_ShaderHadError )
-		std::cout << clr::pinkish << "FAILED: " << clr::red << failed << clr::reset << std::endl;
-}
 
 static bool s_write = true;
 static BOOL WINAPI CtrlHandler( DWORD signal )
